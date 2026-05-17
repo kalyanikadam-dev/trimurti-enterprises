@@ -38,7 +38,8 @@ app.use(
       process.env.FRONTEND_URL
     ].filter(Boolean), // Allow specific origins based on environment
     credentials: true,
-  }),
+  })
+);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -55,11 +56,7 @@ app.use("/api/contacts", contactsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/orders", ordersRouter);
 
-// Prisma connect test
-import prisma from "./prisma.js";
-prisma.$connect()
-  .then(() => console.log("Neon DB (PostgreSQL) connected via Prisma"))
-  .catch((err) => console.error("Prisma connection error:", err));
+
 
 // Error handler
 app.use((err, req, res, next) => {
