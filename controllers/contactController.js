@@ -1,4 +1,4 @@
-import Contact from "../models/Contact.js";
+import prisma from "../prisma.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
@@ -7,25 +7,26 @@ dotenv.config();
 export const updateContact = async (req, res) => {
   try {
     const { id } = req.params;
-    const { verified } = req.body; // Primarily toggle verified
+    const { verified } = req.body;
 
-    const contact = await Contact.findById(id);
-    if (!contact) {
-      return res.status(404).json({ error: "Contact not found" });
-    }
-
-    // Simple auth check (same as getAdminContacts)
     const token = req.header("Authorization")?.replace("Bearer ", "");
     if (token !== "admin123") {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    if (verified !== undefined) {
-      contact.verified = verified;
+    const contact = await prisma.contact.findUnique({ where: { id } });
+    if (!contact) {
+      return res.status(404).json({ error: "Contact not found" });
     }
 
-    await contact.save();
-    res.json({ message: "Contact updated", contact });
+    const updatedContact = await prisma.contact.update({
+      where: { id },
+      data: {
+        ...(verified !== undefined && { verified }),
+      },
+    });
+
+    res.json({ message: "Contact updated", contact: updatedContact });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -35,16 +36,17 @@ export const deleteContact = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Simple auth check
     const token = req.header("Authorization")?.replace("Bearer ", "");
     if (token !== "admin123") {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const contact = await Contact.findByIdAndDelete(id);
+    const contact = await prisma.contact.findUnique({ where: { id } });
     if (!contact) {
       return res.status(404).json({ error: "Contact not found" });
     }
+
+    await prisma.contact.delete({ where: { id } });
 
     res.json({ message: "Contact deleted successfully" });
   } catch (error) {
@@ -54,19 +56,17 @@ export const deleteContact = async (req, res) => {
 
 export const createContact = async (req, res) => {
   try {
-    const contact = new Contact(req.body);
-    await contact.save();
-
-    // Generate 4-digit OTP for user
     const otp = Math.floor(1000 + Math.random() * 9000);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
-    // Save OTP to contact
-    contact.otp = otp;
-    contact.expiresAt = expiresAt;
-    await contact.save();
+    const contact = await prisma.contact.create({
+      data: {
+        ...req.body,
+        otp: otp.toString(),
+        expiresAt,
+      },
+    });
 
-    // Create transporter
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -75,7 +75,6 @@ export const createContact = async (req, res) => {
       },
     });
 
-    // Email OTP ONLY to user
     const userMailOptions = {
       from: `"Trimurti Enterprises" <${process.env.EMAIL_USER}>`,
       to: contact.email,
@@ -102,10 +101,9 @@ export const createContact = async (req, res) => {
       `,
     };
 
-    // Admin notification (no details in user email)
     const adminMailOptions = {
       from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER, // holder email
+      to: process.env.EMAIL_USER,
       subject: `📩 New Inquiry from ${contact.name}`,
       html: `
     <h2>New Contact Inquiry</h2>
@@ -119,17 +117,16 @@ export const createContact = async (req, res) => {
 
     <hr/>
 
-    <p><strong>Contact ID:</strong> ${contact._id}</p>
+    <p><strong>Contact ID:</strong> ${contact.id}</p>
   `,
     };
 
-    // Send emails
     await transporter.sendMail(userMailOptions);
     await transporter.sendMail(adminMailOptions);
 
     res.status(201).json({
       message: "Contact submitted & OTP sent",
-      contactId: contact._id,
+      contactId: contact.id,
       otpSent: true,
     });
   } catch (error) {

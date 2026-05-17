@@ -1,4 +1,4 @@
-import Quote from "../models/Quote.js";
+import prisma from "../prisma.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
@@ -14,17 +14,28 @@ export const createQuote = async (req, res) => {
       return res.status(400).json({ error: "Email is required" });
     }
 
-    // ✅ Create quote
-    const quote = new Quote(req.body);
-    await quote.save();
+    const { name, email, phone, message, requirements } = req.body;
 
     // ✅ Generate OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    quote.otp = otp;
-    quote.expiresAt = expiresAt;
-    await quote.save();
+    // ✅ Create quote
+    const quote = await prisma.quote.create({
+      data: {
+        name,
+        email,
+        phone,
+        message,
+        quantity: requirements?.quantity,
+        capacity: requirements?.capacity,
+        materials: requirements?.materials || [],
+        color: requirements?.color,
+        details: requirements?.details,
+        otp: otp.toString(),
+        expiresAt,
+      },
+    });
 
     console.log("📧 Sending OTP to:", quote.email);
 
@@ -62,7 +73,7 @@ export const createQuote = async (req, res) => {
     // ✅ Response
     res.status(201).json({
       message: "Quote submitted & OTP sent",
-      quoteId: quote._id,
+      quoteId: quote.id,
       otpSent: true,
     });
   } catch (error) {

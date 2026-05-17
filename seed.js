@@ -1,17 +1,12 @@
-import mongoose from "mongoose";
-import Product from "./models/Product.js";
-import dotenv from "dotenv";
+import prisma from "./prisma.js";
 
-dotenv.config();
+async function main() {
+  console.log("Seeding data...");
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(async () => {
-    console.log("Seeding data...");
+  await prisma.product.deleteMany();
 
-    await Product.deleteMany({});
-
-    await Product.insertMany([
+  await prisma.product.createMany({
+    data: [
       {
         name: "Premium Glass Bottle 500ml",
         description: "High quality glass bottle for beverages.",
@@ -26,14 +21,20 @@ mongoose
         price: 15,
         category: "bottle",
         images: ["/products/bottle2.jpeg"],
+        featured: false,
       },
-      // Add more from public/products
-    ]);
+      // Add more products as needed
+    ],
+  });
 
-    console.log("Seeding complete!");
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error(err);
+  console.log("Seeding complete!");
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });

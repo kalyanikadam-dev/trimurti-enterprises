@@ -1,4 +1,4 @@
-import Quote from "../models/Quote.js";
+import prisma from "../prisma.js";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
@@ -9,11 +9,13 @@ export const updateQuoteStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const quote = await Quote.findById(id);
+    const quote = await prisma.quote.findUnique({ where: { id } });
     if (!quote) return res.status(404).json({ error: "Quote not found" });
 
-    quote.status = status;
-    await quote.save();
+    const updatedQuote = await prisma.quote.update({
+      where: { id },
+      data: { status },
+    });
 
     if (status === "confirmed") {
       const transporter = nodemailer.createTransport({
@@ -33,15 +35,15 @@ export const updateQuoteStatus = async (req, res) => {
           <p>Dear ${quote.name},</p>
           <p>Your order has been confirmed:</p>
           <ul>
-            <li>Product: ${quote.message.split("Quote for ")[1]}</li>
-            <li>Quantity: ${quote.requirements?.quantity || "N/A"}</li>
-            <li>Capacity: ${quote.requirements?.capacity || "N/A"}</li>
-            <li>Materials: ${quote.requirements?.materials?.join(", ") || "N/A"}</li>
-            <li>Color: ${quote.requirements?.color || "N/A"}</li>
-            <li>Details: ${quote.requirements?.details || "N/A"}</li>
+            <li>Product: ${quote.message.split("Quote for ")[1] || "N/A"}</li>
+            <li>Quantity: ${quote.quantity || "N/A"}</li>
+            <li>Capacity: ${quote.capacity || "N/A"}</li>
+            <li>Materials: ${quote.materials?.join(", ") || "N/A"}</li>
+            <li>Color: ${quote.color || "N/A"}</li>
+            <li>Details: ${quote.details || "N/A"}</li>
           </ul>
           <p>Phone: +91 ${quote.phone}</p>
-          <p>Company: ${quote.message.split("from ")[1]}</p>
+          <p>Company: ${quote.message.split("from ")[1] || "N/A"}</p>
           <p>We will contact you shortly.</p>
           <p>Trimurti Enterprises</p>
         `,
@@ -50,7 +52,7 @@ export const updateQuoteStatus = async (req, res) => {
       await transporter.sendMail(mailOptions);
     }
 
-    res.json({ message: "Status updated", quote });
+    res.json({ message: "Status updated", quote: updatedQuote });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -59,7 +61,7 @@ export const updateQuoteStatus = async (req, res) => {
 export const deleteQuote = async (req, res) => {
   try {
     const { id } = req.params;
-    await Quote.findByIdAndDelete(id);
+    await prisma.quote.delete({ where: { id } });
     res.json({ message: "Quote deleted" });
   } catch (error) {
     res.status(500).json({ error: error.message });

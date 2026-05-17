@@ -1,5 +1,4 @@
-import Quote from "../models/Quote.js";
-import Contact from "../models/Contact.js";
+import prisma from "../prisma.js";
 
 export const verifyQuoteOTP = async (req, res) => {
   try {
@@ -9,24 +8,28 @@ export const verifyQuoteOTP = async (req, res) => {
       return res.status(400).json({ error: "quoteId and otp required" });
     }
 
-    const quote = await Quote.findById(quoteId);
+    const quote = await prisma.quote.findUnique({ where: { id: quoteId } });
     if (!quote) {
       return res.status(404).json({ error: "Quote not found" });
     }
 
-    if (quote.otp != otp || new Date() > quote.expiresAt) {
+    if (quote.otp !== otp.toString() || new Date() > quote.expiresAt) {
       return res.status(400).json({ error: "Invalid or expired OTP" });
     }
 
-    // Clear OTP
-    quote.otp = undefined;
-    quote.expiresAt = undefined;
-    quote.verified = true;
-    await quote.save();
+    // Clear OTP and mark as verified
+    await prisma.quote.update({
+      where: { id: quoteId },
+      data: {
+        otp: null,
+        expiresAt: null,
+        verified: true,
+      },
+    });
 
     res.json({
       message: "Quote verified successfully",
-      quoteId: quote._id,
+      quoteId: quote.id,
     });
   } catch (error) {
     console.error("Verify Quote OTP error:", error);
@@ -43,7 +46,9 @@ export const getAdminQuotes = async (req, res) => {
         .json({ error: "Unauthorized - use Bearer admin123" });
     }
 
-    const quotes = await Quote.find({}).sort({ createdAt: -1 });
+    const quotes = await prisma.quote.findMany({
+      orderBy: { createdAt: "desc" },
+    });
     res.json(quotes);
   } catch (error) {
     console.error("Get admin quotes error:", error);
@@ -59,24 +64,30 @@ export const verifyContactOTP = async (req, res) => {
       return res.status(400).json({ error: "contactId and otp required" });
     }
 
-    const contact = await Contact.findById(contactId);
+    const contact = await prisma.contact.findUnique({
+      where: { id: contactId },
+    });
     if (!contact) {
       return res.status(404).json({ error: "Contact not found" });
     }
 
-    if (contact.otp != otp || new Date() > contact.expiresAt) {
+    if (contact.otp !== otp.toString() || new Date() > contact.expiresAt) {
       return res.status(400).json({ error: "Invalid or expired OTP" });
     }
 
-    // Clear OTP
-    contact.otp = undefined;
-    contact.expiresAt = undefined;
-    contact.verified = true;
-    await contact.save();
+    // Clear OTP and mark as verified
+    await prisma.contact.update({
+      where: { id: contactId },
+      data: {
+        otp: null,
+        expiresAt: null,
+        verified: true,
+      },
+    });
 
     res.json({
       message: "Contact verified successfully",
-      contactId: contact._id,
+      contactId: contact.id,
     });
   } catch (error) {
     console.error("Verify Contact OTP error:", error);
@@ -93,7 +104,9 @@ export const getAdminContacts = async (req, res) => {
         .json({ error: "Unauthorized - use Bearer admin123" });
     }
 
-    const contacts = await Contact.find({}).sort({ createdAt: -1 });
+    const contacts = await prisma.contact.findMany({
+      orderBy: { createdAt: "desc" },
+    });
     res.json(contacts);
   } catch (error) {
     console.error("Get admin contacts error:", error);
