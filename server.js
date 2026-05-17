@@ -64,7 +64,7 @@ prisma.$connect()
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: "Server error" });
+  res.status(500).json({ error: err.message || "Server error", stack: err.stack });
 });
 
 app.listen(PORT, () => {
