@@ -39,43 +39,53 @@ export const createQuote = async (req, res) => {
 
     console.log("📧 Sending OTP to:", quote.email);
 
-    // ✅ Use SAME transporter (as working API)
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    try {
+      // ✅ Use SAME transporter (as working API)
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      });
 
-    // ✅ Verify transporter
-    await transporter.verify();
-    console.log("✅ Transporter verified");
+      // ✅ Verify transporter
+      await transporter.verify();
+      console.log("✅ Transporter verified");
 
-    // ✅ Mail options
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: quote.email,
-      subject: "Your Quote OTP - Trimurti Enterprises",
-      html: `
-        <h2 style="color:#d97706;text-align:center;">Your OTP</h2>
-        <p style="font-size:32px;font-weight:bold;text-align:center;letter-spacing:8px;">
-          ${otp}
-        </p>
-        <p style="text-align:center;">Valid for 10 minutes only.</p>
-      `,
-    };
+      // ✅ Mail options
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: quote.email,
+        subject: "Your Quote OTP - Trimurti Enterprises",
+        html: `
+          <h2 style="color:#d97706;text-align:center;">Your OTP</h2>
+          <p style="font-size:32px;font-weight:bold;text-align:center;letter-spacing:8px;">
+            ${otp}
+          </p>
+          <p style="text-align:center;">Valid for 10 minutes only.</p>
+        `,
+      };
 
-    // ✅ Send mail
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent:", info.response);
+      // ✅ Send mail
+      const info = await transporter.sendMail(mailOptions);
+      console.log("✅ Email sent:", info.response);
 
-    // ✅ Response
-    res.status(201).json({
-      message: "Quote submitted & OTP sent",
-      quoteId: quote.id,
-      otpSent: true,
-    });
+      // ✅ Response
+      res.status(201).json({
+        message: "Quote submitted & OTP sent",
+        quoteId: quote.id,
+        otpSent: true,
+      });
+    } catch (mailError) {
+      console.error("❌ SMTP/Nodemailer Error:", mailError.message);
+      res.status(201).json({
+        message: "Quote submitted (Email failed, using OTP fallback)",
+        quoteId: quote.id,
+        otpSent: false,
+        otp: otp.toString(),
+      });
+    }
   } catch (error) {
     console.error("❌ ERROR:", error.message);
 

@@ -49,7 +49,11 @@ export const updateQuoteStatus = async (req, res) => {
         `,
       };
 
-      await transporter.sendMail(mailOptions);
+      try {
+        await transporter.sendMail(mailOptions);
+      } catch (mailError) {
+        console.error("❌ SMTP/Nodemailer Error for admin quote confirmation email:", mailError.message);
+      }
     }
 
     res.json({ message: "Status updated", quote: updatedQuote });

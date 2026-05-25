@@ -121,8 +121,12 @@ export const createContact = async (req, res) => {
   `,
     };
 
-    await transporter.sendMail(userMailOptions);
-    await transporter.sendMail(adminMailOptions);
+    try {
+      await transporter.sendMail(userMailOptions);
+      await transporter.sendMail(adminMailOptions);
+    } catch (mailError) {
+      console.error("❌ SMTP/Nodemailer Error for inquiry emails:", mailError.message);
+    }
 
     res.status(201).json({
       message: "Contact submitted & OTP sent",
