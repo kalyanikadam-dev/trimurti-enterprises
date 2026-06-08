@@ -37,55 +37,14 @@ export const createQuote = async (req, res) => {
       },
     });
 
-    console.log("📧 Sending OTP to:", quote.email);
+    console.log("⚠️ Mail disabled, using OTP fallback directly for:", quote.email);
 
-    try {
-      // ✅ Use SAME transporter (as working API)
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS,
-        },
-      });
-
-      // ✅ Verify transporter
-      await transporter.verify();
-      console.log("✅ Transporter verified");
-
-      // ✅ Mail options
-      const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to: quote.email,
-        subject: "Your Quote OTP - Trimurti Enterprises",
-        html: `
-          <h2 style="color:#d97706;text-align:center;">Your OTP</h2>
-          <p style="font-size:32px;font-weight:bold;text-align:center;letter-spacing:8px;">
-            ${otp}
-          </p>
-          <p style="text-align:center;">Valid for 10 minutes only.</p>
-        `,
-      };
-
-      // ✅ Send mail
-      const info = await transporter.sendMail(mailOptions);
-      console.log("✅ Email sent:", info.response);
-
-      // ✅ Response
-      res.status(201).json({
-        message: "Quote submitted & OTP sent",
-        quoteId: quote.id,
-        otpSent: true,
-      });
-    } catch (emailError) {
-      console.error("📧 Email failed to send, using OTP fallback:", emailError.message);
-      res.status(201).json({
-        message: "Quote submitted (Email failed, using OTP fallback)",
-        quoteId: quote.id,
-        otpSent: false,
-        otp: otp.toString(),
-      });
-    }
+    res.status(201).json({
+      message: "Quote submitted (Email failed, using OTP fallback)",
+      quoteId: quote.id,
+      otpSent: false,
+      otp: otp.toString(),
+    });
   } catch (error) {
     console.error("❌ ERROR:", error.message);
 
