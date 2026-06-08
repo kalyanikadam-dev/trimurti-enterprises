@@ -77,8 +77,8 @@ export const createQuote = async (req, res) => {
         quoteId: quote.id,
         otpSent: true,
       });
-    } catch (mailError) {
-      console.error("❌ SMTP/Nodemailer Error:", mailError.message);
+    } catch (emailError) {
+      console.error("📧 Email failed to send, using OTP fallback:", emailError.message);
       res.status(201).json({
         message: "Quote submitted (Email failed, using OTP fallback)",
         quoteId: quote.id,

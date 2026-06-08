@@ -30,6 +30,7 @@ export const verifyQuoteOTP = async (req, res) => {
     res.json({
       message: "Quote verified successfully",
       quoteId: quote.id,
+      verified: true,
     });
   } catch (error) {
     console.error("Verify Quote OTP error:", error);
