@@ -30,13 +30,30 @@ const apiLimiter = rateLimit({
 app.use("/api", apiLimiter);
 
 // General Middleware
+const allowedOrigins = [
+  "https://trimurti-enterprises-frontend.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+  "http://127.0.0.1:5175",
+];
+
 app.use(
   cors({
-    origin: [
-      "https://trimurti-enterprises-frontend.vercel.app", 
-      "http://localhost:5173",
-      process.env.FRONTEND_URL
-    ].filter(Boolean), // Allow specific origins based on environment
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const isAllowed = allowedOrigins.includes(origin) || 
+                        origin === process.env.FRONTEND_URL ||
+                        /^http:\/\/localhost:\d+$/.test(origin) ||
+                        /^http:\/\/127\.0\.0\.1:\d+$/.test(origin);
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   })
 );
