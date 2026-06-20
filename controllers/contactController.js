@@ -56,12 +56,18 @@ export const deleteContact = async (req, res) => {
 
 export const createContact = async (req, res) => {
   try {
+    const { name, email, phone, company, subject, message } = req.body;
+
     const otp = Math.floor(1000 + Math.random() * 9000);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
     const contact = await prisma.contact.create({
       data: {
-        ...req.body,
+        name,
+        email,
+        phone,
+        subject,
+        message,
         otp: otp.toString(),
         expiresAt,
       },
@@ -111,6 +117,7 @@ export const createContact = async (req, res) => {
     <p><strong>Name:</strong> ${contact.name}</p>
     <p><strong>Email:</strong> ${contact.email}</p>
     <p><strong>Phone:</strong> ${contact.phone}</p>
+    ${company ? `<p><strong>Company:</strong> ${company}</p>` : ""}
     
     <p><strong>Message:</strong></p>
     <p>${contact.message}</p>
